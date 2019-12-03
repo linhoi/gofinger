@@ -1,6 +1,6 @@
-# 1
+# troubleshot 1
 ../../goWorkspace/src/github.com/google/gopacket/pcapgo/capture.go:201:9: undefined: unix.SetsockoptSockFprog
 ../../../goWorkspace/src/github.com/google/gopacket/pcapgo/capture.go:226:9: undefined: unix.SetsockoptPacketMreq
 ../../../goWorkspace/src/github.com/google/gopacket/pcapgo/capture.go:231:9: undefined: unix.GetsockoptTpacketStats
 
-please download x/sys package from https://github.com/golang/sys
+solution :  download x/sys package from https://github.com/golang/sys,

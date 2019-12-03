@@ -6,6 +6,7 @@ package gofinger
 ****************************** */
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -39,21 +40,22 @@ func (df *DhcpFP) print() {
 		"mac          :", df.Mac, "\n",
 		"hosName      :", df.HostName, "\n",
 		"vendor       :", df.Vendor, "\n",
-		"optionOrder  :", df.OptionList, "\n",
+		"optionList  :", df.OptionList, "\n",
 		"option55List :", df.Option55List)
 
 }
 func (df *DhcpFP) Print() {
-	fmt.Printf("client       :%s\nmac          :%v\nhosName      :%s\nvendor       :%s\noptionOrder  :%v\noption55List :%v\n",
+	fmt.Printf("client       :%s\nmac          :%v\nhosName      :%s\nvendor       :%s\noptionList  :%v\noption55List :%v\n",
 		df.Client, df.Mac, df.HostName, df.Vendor, df.OptionList, df.Option55List)
 }
 
 //运行选项
 // -i 选项指定接口，默认会监听所有以太网接口
 var inface = flag.String("i", "", "Interface to be captured")
-
 // -f 选项指定过滤器，默认过滤出67和68端口
-var filter = flag.String("f", "udp and (port 67 or 68) ", "BPF filter for pcap")
+var filter = flag.String("f", "udp and (port 67 or 68) and not host 0.0.0.0", "BPF filter for pcap")
+
+var jsonDatas [][]byte
 
 func Run() {
 	//Dont forget to parse flag , otherwise if may not work
@@ -69,17 +71,48 @@ func Run() {
 		}
 	}
 
+	//scan the interfaces to find out if the inface exit
+	if *inface != ""{
+		interFaces = strings.Split(*inface ," ")
+	}
+	var deviceExist [10]bool
+	for i:=0;  i < len(devices); i++{
+		for j:=0; j< len(interFaces); j++ {
+			if interFaces[j] == devices[i].Name {
+				deviceExist[j] = true
+			}
+		}
+	}
+	for i:=0;i < len(interFaces);i++ {
+		if deviceExist[i] == false  {
+			fmt.Printf("There is not an interface named %v, \n "+
+				"you can get interface with command :ip addr\n", interFaces)
+			return
+		}
+	}
+
+
 	go func() {
 		var i = 0
 		for {
-			i++
 			data := <-ch
-			http.HandleFunc("/"+"ID="+strconv.Itoa(i), func(w http.ResponseWriter, r *http.Request) {
-				_, err := w.Write(data)
-				if err != nil {
-					panic(err)
+			var dataExist bool
+			for _ ,jsonData := range jsonDatas{
+				if bytes.Equal(jsonData,data){
+					dataExist = true
+					break
 				}
-			})
+			}
+			if !dataExist {
+				i++
+				jsonDatas = append(jsonDatas, data)
+				http.HandleFunc("/"+"ID="+strconv.Itoa(i), func(w http.ResponseWriter, r *http.Request) {
+					_, err := w.Write(data)
+					if err != nil {
+						panic(err)
+					}
+				})
+			}
 		}
 	}()
 
@@ -87,20 +120,19 @@ func Run() {
 		log.Fatal(http.ListenAndServe(":8000", nil))
 	}()
 
-	if *inface == "" {
-		var wait sync.WaitGroup
-		for _, interFace := range interFaces {
+
+
+	var wait sync.WaitGroup
+	for _, interFace := range interFaces {
 			wait.Add(1)
 			go func(interFace string) {
 				defer wait.Done()
 				fmt.Println("Capture DHCP FingerPrint on Interface:", interFace)
 				captureDhcp(interFace)
 			}(interFace)
-		}
-		wait.Wait()
-	} else {
-		captureDhcp(*inface)
 	}
+	wait.Wait()
+
 }
 
 //解析DHCP报文的主函数
@@ -118,7 +150,8 @@ func captureDhcp(interFace string) {
 
 	err = handle.SetBPFFilter(*filter)
 	if err != nil {
-		panic(err.Error())
+		fmt.Println("ERROR Happened: something was wrong with your filter, make sure to use the filter with right syntax")
+		return
 	}
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
