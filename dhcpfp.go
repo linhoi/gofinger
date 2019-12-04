@@ -31,8 +31,7 @@ type DhcpFP struct {
 }
 
 //通道
-var ch = make(chan []byte)
-var chHandler = make(chan struct{})
+var chDhcpFp = make(chan []byte)
 
 //格式化打印DHCP指纹
 func (df *DhcpFP) print() {
@@ -45,22 +44,23 @@ func (df *DhcpFP) print() {
 
 }
 func (df *DhcpFP) Print() {
-	fmt.Printf("client       :%s\nmac          :%v\nhosName      :%s\nvendor       :%s\noptionList  :%v\noption55List :%v\n",
+	fmt.Printf("client       :%s\nmac          :%v\nhosName      :%s\nvendor       :%s\noptionList   :%v\noption55List :%v\n",
 		df.Client, df.Mac, df.HostName, df.Vendor, df.OptionList, df.Option55List)
 }
 
 //运行选项
 // -i 选项指定接口，默认会监听所有以太网接口
-var inface = flag.String("i", "", "Interface to be captured")
+var interfaceFlag = flag.String("i", "", "Interface to be captured")
 // -f 选项指定过滤器，默认过滤出67和68端口
-var filter = flag.String("f", "udp and (port 67 or 68) and not host 0.0.0.0", "BPF filter for pcap")
+var filter = flag.String("f", "((udp and (port 67 or 68)) or (tcp and port 80)) and not host 0.0.0.0", "BPF filter for pcap")
 
 var jsonDatas [][]byte
 
 func Run() {
 	//Dont forget to parse flag , otherwise if may not work
 	flag.Parse()
-	fmt.Println("pcap version: ", pcap.Version()) //获取全部接口
+	fmt.Println("pcap version: ", pcap.Version())
+	//get every interface in the device
 	var interFaces []string
 	devices, _ := pcap.FindAllDevs()
 	for _, device := range devices {
@@ -71,13 +71,13 @@ func Run() {
 		}
 	}
 
-	//scan the interfaces to find out if the inface exit
-	if *inface != ""{
-		interFaces = strings.Split(*inface ," ")
+	//scan the interfaces to find out if the interfaceFlag exist
+	if *interfaceFlag != ""{
+		interFaces = strings.Split(*interfaceFlag ," ")
 	}
 	var deviceExist [10]bool
 	for i:=0;  i < len(devices); i++{
-		for j:=0; j< len(interFaces); j++ {
+		for j:=0; j < len(interFaces) && j < 10 ; j++ {
 			if interFaces[j] == devices[i].Name {
 				deviceExist[j] = true
 			}
@@ -85,17 +85,17 @@ func Run() {
 	}
 	for i:=0;i < len(interFaces);i++ {
 		if deviceExist[i] == false  {
-			fmt.Printf("There is not an interface named %v, \n "+
+			fmt.Printf("Interface named %v not found, \n "+
 				"you can get interface with command :ip addr\n", interFaces)
 			return
 		}
 	}
 
-
+	//attach every dhcpfingerprint to a http url
 	go func() {
-		var i = 0
+		var gonum = 0
 		for {
-			data := <-ch
+			data := <-chDhcpFp
 			var dataExist bool
 			for _ ,jsonData := range jsonDatas{
 				if bytes.Equal(jsonData,data){
@@ -104,9 +104,9 @@ func Run() {
 				}
 			}
 			if !dataExist {
-				i++
+				gonum++
 				jsonDatas = append(jsonDatas, data)
-				http.HandleFunc("/"+"ID="+strconv.Itoa(i), func(w http.ResponseWriter, r *http.Request) {
+				http.HandleFunc("/"+"ID="+strconv.Itoa(gonum), func(w http.ResponseWriter, r *http.Request) {
 					_, err := w.Write(data)
 					if err != nil {
 						panic(err)
@@ -115,28 +115,26 @@ func Run() {
 			}
 		}
 	}()
-
 	go func() {
 		log.Fatal(http.ListenAndServe(":8000", nil))
 	}()
 
-
-
+	//capture dhcp package in concurrency
 	var wait sync.WaitGroup
 	for _, interFace := range interFaces {
 			wait.Add(1)
 			go func(interFace string) {
 				defer wait.Done()
 				fmt.Println("Capture DHCP FingerPrint on Interface:", interFace)
-				captureDhcp(interFace)
+				capture(interFace)
 			}(interFace)
 	}
 	wait.Wait()
 
 }
 
-//解析DHCP报文的主函数
-func captureDhcp(interFace string) {
+//capture dhcp and http package
+func capture(interFace string) {
 	handle, err := pcap.OpenLive(
 		interFace,
 		int32(65535),
@@ -150,16 +148,25 @@ func captureDhcp(interFace string) {
 
 	err = handle.SetBPFFilter(*filter)
 	if err != nil {
-		fmt.Println("ERROR Happened: something was wrong with your filter, make sure to use the filter with right syntax")
+		fmt.Println("ERROR Happened: filter syntax error,please use the filter with right syntax")
 		return
 	}
 
 	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
 	packets := packetSource.Packets()
-
 	for packet := range packets {
 		dhcpLayer := packet.Layer(layers.LayerTypeDHCPv4)
 		if dhcpLayer != nil {
+			captureDhcp(packet)
+		}else{
+			captureHttp(packet)
+		}
+		//httpLayer := packet.Layer(http)
+	}
+}
+func captureDhcp(packet gopacket.Packet ) bool {
+	dhcpLayer := packet.Layer(layers.LayerTypeDHCPv4)
+	if dhcpLayer != nil {
 			dhcPv4 := dhcpLayer.(*layers.DHCPv4)
 			options := dhcPv4.Options
 
@@ -186,14 +193,17 @@ func captureDhcp(interFace string) {
 
 			fmt.Println("--------------------------------------------------------------------")
 			dhcpFingerPrinter.Print()
-			fmt.Println("----------------------")
+			//fmt.Println("----------------------")
 			data, err := json.MarshalIndent(dhcpFingerPrinter, "", "   ")
 			if err != nil {
 				log.Fatalf("Json Marshaling failed: %s", err)
 			}
-			ch <- data
-			fmt.Printf("Json Data:%s\n", data)
+			chDhcpFp <- data
+			//fmt.Printf("Json Data:%s\n", data)
 
-		}
+			return true
 	}
+	return false
 }
+
+
