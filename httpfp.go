@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
+	"github.com/mssola/user_agent"
 	"strings"
 )
 
@@ -13,10 +14,10 @@ type HttpFp struct{
 	Host 		string		`json:Host`
 	UserAgent 	string		`json:UserAgent`
 	Cookie 		string		`json:Cookie`
-	Os 			string 		`json:Os`
+	OS 			string 		`json:Os`
 }
 func (hf HttpFp) print(){
-	fmt.Printf("IP       : %s\nMac      : %s\nUserAgent: %s\nHost     :%s\nCookie   : %s\nOs       : %s\n",hf.Ip,hf.Mac,hf.UserAgent,hf.Host,hf.Cookie,hf.Os)
+	fmt.Printf("IP       : %s\nMac      : %s\nUserAgent: %s\nHost     : %s\nCookie   : %s\nOS       : %s\n",hf.Ip,hf.Mac,hf.UserAgent,hf.Host,hf.Cookie,hf.OS)
 }
 
 
@@ -36,6 +37,9 @@ func captureHttp(packet gopacket.Packet) {
 			for _, httpdata := range httpDatas{
 				if strings.Contains(httpdata,"User-Agent"){
 					httpFingerprint.UserAgent = strings.Trim(httpdata,"User-Agent: ")
+					httpFingerprint.OS = user_agent.New(httpFingerprint.UserAgent).OS()
+				}else{
+					return
 				}
 				if strings.Contains(httpdata,"Cookie"){
 					httpFingerprint.Cookie = strings.Trim(httpdata,"Cookie: ")
