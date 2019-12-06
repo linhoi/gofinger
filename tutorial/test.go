@@ -1,79 +1,61 @@
 package main
 
 import (
-	"fmt"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
-	"strings"
+	"crypto/tls"
+	"log"
+	"net/http"
+	"net/http/httptest"
+	"os"
 )
 
-type HttpFp struct{
-	Ip string
-	Mac string
-	Host string
-	UserAgent string
-	Cookie string
-	Os string
-}
-func (hf HttpFp) print(){
-	fmt.Printf("IP: %s\nMac: %s\nUserAgent: %s\nHost:%s\nCookie: %s\nOs: %s\n",hf.Ip,hf.Mac,hf.UserAgent,hf.Host,hf.Cookie,hf.Os)
-}
+// zeroSource is an io.Reader that returns an unlimited number of zero bytes.
+type zeroSources struct{}
 
+func (zeroSources) Read(b []byte) (n int, err error) {
+	for i := range b {
+		b[i] = 0
+	}
+
+	return len(b), nil
+}
 
 func main() {
-	handle, err := pcap.OpenLive("ens33", 1600, true, pcap.BlockForever)
+	// Debugging TLS applications by decrypting a network traffic capture.
+
+	// WARNING: Use of KeyLogWriter compromises security and should only be
+	// used for debugging.
+
+	// Dummy test HTTP server for the example with insecure random so output is
+	// reproducible.
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server.TLS = &tls.Config{
+		Rand: zeroSources{}, // for example only; don't do this.
+	}
+	server.StartTLS()
+	defer server.Close()
+
+	// Typically the log would go to an open file:
+	// w, err := os.OpenFile("tls-secrets.txt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	w := os.Stdout
+
+	client := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				KeyLogWriter: w,
+
+				Rand:               zeroSources{}, // for reproducible output; don't do this.
+				InsecureSkipVerify: true,         // test server certificate is not trusted.
+			},
+		},
+	}
+	resp, err := client.Get(server.URL)
 	if err != nil {
-		panic(err)
+		log.Fatalf("Failed to get URL: %v", err)
 	}
+	resp.Body.Close()
 
-	if err := handle.SetBPFFilter("tcp and dst port 80 "); err != nil{
-		panic(err)
-	}
-	packetSource := gopacket.NewPacketSource(handle, handle.LinkType())
-	for packet := range packetSource.Packets() {
-		httpFingerprint := HttpFp{}
-		tcpLayer := packet.Layer(layers.LayerTypeTCP)
-		if tcpLayer == nil || tcpLayer.(*layers.TCP).DstPort != 80{
-			continue
-		}
-		appLayer := packet.ApplicationLayer()
-		if appLayer == nil{
-			continue
-		}else{
-			fmt.Println("---------------------------------------------------------------------------------------------")
-			httpRequest := string(appLayer.LayerContents())
-			httpDatas := strings.Split(httpRequest,"\n")
-			for _, httpdata := range httpDatas{
-				if strings.Contains(httpdata,"User-Agent"){
-					httpFingerprint.UserAgent = strings.Trim(httpdata,"User-Agent: ")
-				}
-				if strings.Contains(httpdata,"Cookie"){
-					httpFingerprint.Cookie = strings.Trim(httpdata,"Cookie: ")
-				}
-				if strings.Contains(httpdata,"Host"){
-					httpFingerprint.Host = strings.Trim(httpdata,"Host: ")
-				}
-
-			}
-
-		}
-
-		etherLayer := packet.Layer(layers.LayerTypeEthernet)
-		if etherLayer != nil{
-			ether := etherLayer.(*layers.Ethernet)
-			httpFingerprint.Mac = ether.SrcMAC.String()
-		}
-
-		ipLayer := packet.Layer(layers.LayerTypeIPv4)
-		if ipLayer != nil{
-			httpFingerprint.Ip = ipLayer.(*layers.IPv4).SrcIP.String()
-
-		}
-
-		httpFingerprint.print()
-	}
+	// The resulting file can be used with Wireshark to decrypt the TLS
+	// connection by setting (Pre)-Master-Secret log filename in SSL Protocol
+	// preferences.
 }
-
-
 

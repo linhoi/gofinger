@@ -1,8 +1,7 @@
 package gofinger
 
 /*****************************
-抓取dhcp设备指纹的demo
-抓取的信息定义在结构体dhcpFP内
+gofinger is a device fingerprint project
 ****************************** */
 
 import (
@@ -20,7 +19,7 @@ import (
 	"sync"
 )
 
-//dhcp设备指纹结构体
+//dhcp fingerprint
 type DhcpFP struct {
 	Client       string `json:client`
 	Mac          string `json:mac`
@@ -30,28 +29,17 @@ type DhcpFP struct {
 	Option55List []byte `json:option55List`
 }
 
-//通道
+//channel that send dhcp fingerprint between capture goroutine and http goroutine
 var chDhcpFp = make(chan []byte)
 
-//格式化打印DHCP指纹
-func (df *DhcpFP) print() {
-	fmt.Println(" client       :", df.Client, "\n",
-		"mac          :", df.Mac, "\n",
-		"hosName      :", df.HostName, "\n",
-		"vendor       :", df.Vendor, "\n",
-		"optionList  :", df.OptionList, "\n",
-		"option55List :", df.Option55List)
-
-}
+//formatted print
 func (df *DhcpFP) Print() {
-	fmt.Printf("client       :%s\nmac          :%v\nhosName      :%s\nvendor       :%s\noptionList   :%v\noption55List :%v\n",
+	fmt.Printf("DHCPFingerPrint\nclient       :%s\nmac          :%v\nhosName      :%s\nvendor       :%s\noptionList   :%v\noption55List :%v\n",
 		df.Client, df.Mac, df.HostName, df.Vendor, df.OptionList, df.Option55List)
 }
 
-//运行选项
-// -i 选项指定接口，默认会监听所有以太网接口
+//run flag
 var interfaceFlag = flag.String("i", "", "Interface to be captured")
-// -f 选项指定过滤器，默认过滤出67和68端口
 var filter = flag.String("f", "((udp and (port 67 or 68)) or (tcp and port 80)) and not host 0.0.0.0", "BPF filter for pcap")
 
 var jsonDatas [][]byte
@@ -72,33 +60,33 @@ func Run() {
 	}
 
 	//scan the interfaces to find out if the interfaceFlag exist
-	if *interfaceFlag != ""{
-		interFaces = strings.Split(*interfaceFlag ," ")
+	if *interfaceFlag != "" {
+		interFaces = strings.Split(*interfaceFlag, " ")
 	}
 	var deviceExist [10]bool
-	for i:=0;  i < len(devices); i++{
-		for j:=0; j < len(interFaces) && j < 10 ; j++ {
+	for i := 0; i < len(devices); i++ {
+		for j := 0; j < len(interFaces) && j < 10; j++ {
 			if interFaces[j] == devices[i].Name {
 				deviceExist[j] = true
 			}
 		}
 	}
-	for i:=0;i < len(interFaces);i++ {
-		if deviceExist[i] == false  {
+	for i := 0; i < len(interFaces); i++ {
+		if deviceExist[i] == false {
 			fmt.Printf("Interface named %v not found, \n "+
 				"you can get interface with command :ip addr\n", interFaces)
 			return
 		}
 	}
 
-	//attach every dhcpfingerprint to a http url
+	//attach every dhcp fingerprint to a http url
 	go func() {
 		var gonum = 0
 		for {
 			data := <-chDhcpFp
 			var dataExist bool
-			for _ ,jsonData := range jsonDatas{
-				if bytes.Equal(jsonData,data){
+			for _, jsonData := range jsonDatas {
+				if bytes.Equal(jsonData, data) {
 					dataExist = true
 					break
 				}
@@ -115,19 +103,21 @@ func Run() {
 			}
 		}
 	}()
+	//run http server
 	go func() {
-		log.Fatal(http.ListenAndServe(":8000", nil))
+		//why use 9010:  90 as go, 10 as 10 fingers.
+		log.Fatal(http.ListenAndServe(":9010", nil))
 	}()
 
-	//capture dhcp package in concurrency
+	//capture dhcp and http package in concurrency
 	var wait sync.WaitGroup
 	for _, interFace := range interFaces {
-			wait.Add(1)
-			go func(interFace string) {
-				defer wait.Done()
-				fmt.Println("Capture DHCP FingerPrint on Interface:", interFace)
-				capture(interFace)
-			}(interFace)
+		wait.Add(1)
+		go func(interFace string) {
+			defer wait.Done()
+			fmt.Println("Capture DHCP FingerPrint on Interface:", interFace)
+			capture(interFace)
+		}(interFace)
 	}
 	wait.Wait()
 
@@ -148,7 +138,7 @@ func capture(interFace string) {
 
 	err = handle.SetBPFFilter(*filter)
 	if err != nil {
-		fmt.Println("ERROR Happened: filter syntax error,please use the filter with right syntax")
+		fmt.Println("ERROR Happened: filter syntax error")
 		return
 	}
 
@@ -158,52 +148,46 @@ func capture(interFace string) {
 		dhcpLayer := packet.Layer(layers.LayerTypeDHCPv4)
 		if dhcpLayer != nil {
 			captureDhcp(packet)
-		}else{
+		} else {
 			captureHttp(packet)
 		}
-		//httpLayer := packet.Layer(http)
 	}
 }
-func captureDhcp(packet gopacket.Packet ) bool {
+func captureDhcp(packet gopacket.Packet) bool {
 	dhcpLayer := packet.Layer(layers.LayerTypeDHCPv4)
 	if dhcpLayer != nil {
-			dhcPv4 := dhcpLayer.(*layers.DHCPv4)
-			options := dhcPv4.Options
+		dhcPv4 := dhcpLayer.(*layers.DHCPv4)
+		options := dhcPv4.Options
 
-			dhcpFingerPrinter := DhcpFP{
-				Client: dhcPv4.ClientIP.String(),
-				Mac:    dhcPv4.ClientHWAddr.String(),
-			}
+		dhcpFingerPrinter := DhcpFP{
+			Client: dhcPv4.ClientIP.String(),
+			Mac:    dhcPv4.ClientHWAddr.String(),
+		}
 
-			for _, option := range options {
-				dhcpFingerPrinter.OptionList = append(dhcpFingerPrinter.OptionList, byte(option.Type))
-				switch option.Type {
-				case layers.DHCPOptHostname:
-					dhcpFingerPrinter.HostName = string(option.Data)
-				case layers.DHCPOptClassID:
-					dhcpFingerPrinter.Vendor = string(option.Data)
-				case layers.DHCPOptParamsRequest:
-					for _, v := range option.Data {
-						dhcpFingerPrinter.Option55List = append(dhcpFingerPrinter.Option55List, v)
-					}
-				default:
-
+		for _, option := range options {
+			dhcpFingerPrinter.OptionList = append(dhcpFingerPrinter.OptionList, byte(option.Type))
+			switch option.Type {
+			case layers.DHCPOptHostname:
+				dhcpFingerPrinter.HostName = string(option.Data)
+			case layers.DHCPOptClassID:
+				dhcpFingerPrinter.Vendor = string(option.Data)
+			case layers.DHCPOptParamsRequest:
+				for _, v := range option.Data {
+					dhcpFingerPrinter.Option55List = append(dhcpFingerPrinter.Option55List, v)
 				}
-			}
+			default:
 
-			fmt.Println("--------------------------------------------------------------------")
-			dhcpFingerPrinter.Print()
-			//fmt.Println("----------------------")
-			data, err := json.MarshalIndent(dhcpFingerPrinter, "", "   ")
-			if err != nil {
-				log.Fatalf("Json Marshaling failed: %s", err)
 			}
-			chDhcpFp <- data
-			//fmt.Printf("Json Data:%s\n", data)
+		}
 
-			return true
+		fmt.Println("--------------------------------------------------------------------")
+		dhcpFingerPrinter.Print()
+		data, err := json.MarshalIndent(dhcpFingerPrinter, "", "   ")
+		if err != nil {
+			log.Fatalf("Json Marshaling failed: %s", err)
+		}
+		chDhcpFp <- data
+		return true
 	}
 	return false
 }
-
-
