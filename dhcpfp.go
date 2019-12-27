@@ -44,7 +44,9 @@ var filter = flag.String("f", "((udp and (port 67 or 68)) or (tcp and port 80)) 
 
 var jsonDatas [][]byte
 
-func Run() {
+
+
+func FingerPrint() {
 	//Dont forget to parse flag , otherwise if may not work
 	flag.Parse()
 	fmt.Println("pcap version: ", pcap.Version())
@@ -153,6 +155,7 @@ func capture(interFace string) {
 		}
 	}
 }
+
 func captureDhcp(packet gopacket.Packet) bool {
 	dhcpLayer := packet.Layer(layers.LayerTypeDHCPv4)
 	if dhcpLayer != nil {

@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE nmaprun>
+<?xml-stylesheet href="file:///usr/bin/../share/nmap/nmap.xsl" type="text/xsl"?>
+<!-- Nmap 7.80 scan initiated Thu Dec 26 09:23:40 2019 as: nmap -sV -n -O -&#45;open -p 0-65535 -oX file 192.168.10.98 -->
+<nmaprun scanner="nmap" args="nmap -sV -n -O -&#45;open -p 0-65535 -oX file 192.168.10.98" start="1577323420" startstr="Thu Dec 26 09:23:40 2019" version="7.80" xmloutputversion="1.04">
+<scaninfo type="syn" protocol="tcp" numservices="65536" services="0-65535"/>
+<verbose level="0"/>
+<debugging level="0"/>
+<host starttime="1577323421" endtime="1577323738"><status state="up" reason="reset" reason_ttl="128"/>
+<address addr="192.168.10.98" addrtype="ipv4"/>
+<hostnames>
+</hostnames>
+<ports><extraports state="filtered" count="65532">
+<extrareasons reason="no-responses" count="65532"/>
+</extraports>
+<port protocol="tcp" portid="22"><state state="open" reason="syn-ack" reason_ttl="128"/><service name="ssh" product="OpenSSH" version="6.6.1" extrainfo="protocol 2.0" method="probed" conf="10"><cpe>cpe:/a:openbsd:openssh:6.6.1</cpe></service></port>
+<port protocol="tcp" portid="25"><state state="open" reason="syn-ack" reason_ttl="128"/><service name="smtp" method="table" conf="3"/></port>
+<port protocol="tcp" portid="587"><state state="open" reason="syn-ack" reason_ttl="128"/><service name="submission" method="table" conf="3"/></port>
+<port protocol="tcp" portid="3306"><state state="open" reason="syn-ack" reason_ttl="128"/><service name="mysql" product="MySQL" version="5.5.5-10.1.21-MariaDB" method="probed" conf="10"><cpe>cpe:/a:mysql:mysql:5.5.5-10.1.21-mariadb</cpe></service></port>
+</ports>
+<os><portused state="open" proto="tcp" portid="22"/>
+<osmatch name="Actiontec MI424WR-GEN3I WAP" accuracy="100" line="1343">
+<osclass type="WAP" vendor="Actiontec" osfamily="embedded" accuracy="100"><cpe>cpe:/h:actiontec:mi424wr-gen3i</cpe></osclass>
+<osclass type="WAP" vendor="Linux" osfamily="Linux" accuracy="100"><cpe>cpe:/o:linux:linux_kernel</cpe></osclass>
+</osmatch>
+<osmatch name="DD-WRT v24-sp2 (Linux 2.4.37)" accuracy="100" line="44814">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="2.4.X" accuracy="100"><cpe>cpe:/o:linux:linux_kernel:2.4.37</cpe></osclass>
+</osmatch>
+<osmatch name="Linux 3.2" accuracy="100" line="64419">
+<osclass type="general purpose" vendor="Linux" osfamily="Linux" osgen="3.X" accuracy="100"><cpe>cpe:/o:linux:linux_kernel:3.2</cpe></osclass>
+</osmatch>
+</os>
+<tcpsequence index="256" difficulty="Good luck!" values="7DFF6A23,2420259A,52CD367E,63D71B1,351F6226,1B0E7E8E"/>
+<ipidsequence class="Incremental" values="8A36,8A39,8A3C,8A40,8A43,8A44"/>
+<tcptssequence class="none returned (unsupported)"/>
+<times srtt="1076" rttvar="791" to="100000"/>
+</host>
+<runstats><finished time="1577323739" timestr="Thu Dec 26 09:28:59 2019" elapsed="318.87" summary="Nmap done at Thu Dec 26 09:28:59 2019; 1 IP address (1 host up) scanned in 318.87 seconds" exit="success"/><hosts up="1" down="0" total="1"/>
+</runstats>
+</nmaprun>
