@@ -40,10 +40,9 @@ func (df *DhcpFP) Print() {
 
 //run flag
 var interfaceFlag = flag.String("i", "", "Interface to be captured")
-var filter = flag.String("f", "((udp and (port 67 or 68)) or (tcp and port 80)) and not host 0.0.0.0", "BPF filter for pcap")
+var filter = flag.String("fl", "((udp and (port 67 or 68)) or (tcp and port 80)) and not host 0.0.0.0", "BPF filter for pcap")
 
 var jsonDatas [][]byte
-
 
 
 func FingerPrint() {
