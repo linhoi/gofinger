@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"flag"
 	_ "github.com/go-sql-driver/mysql"
+	"image/gif"
 	"log"
 )
 
@@ -65,12 +66,57 @@ func StoreOsScanData(device Device) {
 	host := *sqlhostFlag
 	pwd := *sqlPwdFlag
 	db := *sqldbFlag
-	conn, err := sql.Open("mysql", root+":"+pwd+"@tcp("+host+":3306)/"+db+"?charset=utf8")
+	dataBase, err := sql.Open("mysql", root+":"+pwd+"@tcp("+host+":3306)/"+db+"?charset=utf8")
 	checkErr(err)
-	defer conn.Close()
+	defer dataBase.Close()
 
-	_, err = conn.Exec("insert osscan(mac,ip,vendor,osType,deviceType,openPorts,scanTime,scanDuration) value(?,?,?,?,?,?,?,?)",
+	_, err = dataBase.Exec("insert osscan(mac,ip,vendor,osType,deviceType,openPorts,scanTime,scanDuration) value(?,?,?,?,?,?,?,?)",
 		device.Mac, device.IP, device.Vendor, device.OsType, device.DeviceType, device.OpenPorts,device.ScanTime,device.ScanDuration)
 	checkErr(err)
 
 }
+
+func ConnectToMysql() (*sql.DB, error) {
+	flag.Parse()
+	root := *sqlUserFlag
+	host := *sqlhostFlag
+	pwd := *sqlPwdFlag
+	db := *sqldbFlag
+	dataBase, err := sql.Open("mysql", root+":"+pwd+"@tcp("+host+":3306)/"+db+"?charset=utf8")
+	return dataBase, err
+}
+
+func StoreDhcpFingerPrint(dhcpFP DhcpFP) error {
+	mysql ,err := ConnectToMysql()
+	if err != nil {
+		return err
+	}
+	sql := "insert into dhcpFingerPrint(client,mac,hostName,vendor,optionList,option55List) value(?,?,?,?,?,?)"
+	stmt, err := mysql.Prepare(sql)
+	if err != nil {
+		return err
+	}
+	_, err =stmt.Exec(dhcpFP.Client,dhcpFP.Mac,dhcpFP.HostName,dhcpFP.Vendor,dhcpFP.OptionList,dhcpFP.Option55List)
+	return err
+
+}
+
+func CreateTableDhcpFP() error {
+	mysql, err := ConnectToMysql()
+	if err != nil {
+		return err
+	}
+	sql := "create table dhcpFP(" +
+		"client char(20) not null ," +
+		"mac char(20)," +
+		"hostName varchar(255), " +
+		"vendor varchar(255), " +
+		"optionList varchar(255)," +
+		"option55List varchar(255), " +
+		"primary key (client))engine=innodb"
+
+	_, err = mysql.Exec(sql)
+	return err
+}
+
+//TODO create table httpFP

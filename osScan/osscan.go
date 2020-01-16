@@ -12,3 +12,6 @@ func main(){
 	log.Println("OsScan is Running")
 	gofinger.OsScanTrigger()
 }
+
+
+

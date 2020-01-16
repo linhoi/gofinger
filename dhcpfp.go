@@ -21,12 +21,12 @@ import (
 
 //dhcp fingerprint
 type DhcpFP struct {
-	Client       string `json:client`
-	Mac          string `json:mac`
-	HostName     string `json:hostName`
-	Vendor       string `json:vendor`
-	OptionList   []byte `json:optionList`
-	Option55List []byte `json:option55List`
+	Client       string `json:"client"`
+	Mac          string `json:"mac"`
+	HostName     string `json:"hostName"`
+	Vendor       string `json:"vendor"`
+	OptionList   []byte `json:"optionList"`
+	Option55List []byte `json:"option55List"`
 }
 
 //channel that send dhcp fingerprint between capture goroutine and http goroutine
@@ -161,21 +161,21 @@ func captureDhcp(packet gopacket.Packet) bool {
 		dhcPv4 := dhcpLayer.(*layers.DHCPv4)
 		options := dhcPv4.Options
 
-		dhcpFingerPrinter := DhcpFP{
+		dhcpFingerPrint := DhcpFP{
 			Client: dhcPv4.ClientIP.String(),
 			Mac:    dhcPv4.ClientHWAddr.String(),
 		}
 
 		for _, option := range options {
-			dhcpFingerPrinter.OptionList = append(dhcpFingerPrinter.OptionList, byte(option.Type))
+			dhcpFingerPrint.OptionList = append(dhcpFingerPrint.OptionList, byte(option.Type))
 			switch option.Type {
 			case layers.DHCPOptHostname:
-				dhcpFingerPrinter.HostName = string(option.Data)
+				dhcpFingerPrint.HostName = string(option.Data)
 			case layers.DHCPOptClassID:
-				dhcpFingerPrinter.Vendor = string(option.Data)
+				dhcpFingerPrint.Vendor = string(option.Data)
 			case layers.DHCPOptParamsRequest:
 				for _, v := range option.Data {
-					dhcpFingerPrinter.Option55List = append(dhcpFingerPrinter.Option55List, v)
+					dhcpFingerPrint.Option55List = append(dhcpFingerPrint.Option55List, v)
 				}
 			default:
 
@@ -183,8 +183,9 @@ func captureDhcp(packet gopacket.Packet) bool {
 		}
 
 		fmt.Println("--------------------------------------------------------------------")
-		dhcpFingerPrinter.Print()
-		data, err := json.MarshalIndent(dhcpFingerPrinter, "", "   ")
+
+		dhcpFingerPrint.Print()
+		data, err := json.MarshalIndent(dhcpFingerPrint, "", "   ")
 		if err != nil {
 			log.Fatalf("Json Marshaling failed: %s", err)
 		}

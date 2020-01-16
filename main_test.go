@@ -5,7 +5,7 @@ import (
 )
 
 func TestScanFromFile(t *testing.T){
-	err := ScanFromFile("./tutorial/ipList")
+	err := OsScanFromFile("./tutorial/ipList")
 	if err != nil {
 		t.Error(err.Error())
 	}

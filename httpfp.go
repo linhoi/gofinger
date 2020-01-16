@@ -9,12 +9,12 @@ import (
 )
 
 type HttpFp struct {
-	Ip        string `json:IP`
-	Mac       string `json:Mac`
-	Host      string `json:Host`
-	UserAgent string `json:UserAgent`
-	Cookie    string `json:Cookie`
-	OS        string `json:Os`
+	Ip        string `json:"IP"`
+	Mac       string `json:"Mac"`
+	Host      string `json:"Host"`
+	UserAgent string `json:"UserAgent"`
+	Cookie    string `json:"Cookie"`
+	OS        string `json:"Os"`
 }
 
 func (hf HttpFp) print() {
