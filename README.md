@@ -47,6 +47,9 @@ rpm -vhU https://nmap.org/dist/nmap-7.80-1.x86_64.rpm
 ```shell script
 go run osScan/osscan.go -si [interfaceName] -h [host_name_of_mysql] -u [user_name_of_mysql] -p [password_of_user] -db [database_name]
 ```
+```shell script
+go run osScan/osscan.go -f [filePath] -h [host_name_of_mysql] -u [user_name_of_mysql] -p [password_of_user] -db [database_name]
+```
 
 ## OutPut
 The result of OsScan will be saved in mysql database. If you  set -db option when running osScan, data will be saved in database_name,with the table named "osscan".
