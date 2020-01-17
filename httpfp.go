@@ -5,10 +5,11 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/mssola/user_agent"
+	"log"
 	"strings"
 )
 
-type HttpFp struct {
+type HttpFP struct {
 	Ip        string `json:"IP"`
 	Mac       string `json:"Mac"`
 	Host      string `json:"Host"`
@@ -17,12 +18,12 @@ type HttpFp struct {
 	OS        string `json:"Os"`
 }
 
-func (hf HttpFp) print() {
+func (hf HttpFP) print() {
 	fmt.Printf("HTTPingerPrint\nIP       : %s\nMac      : %s\nUserAgent: %s\nHost     : %s\nCookie   : %s\nOS       : %s\n", hf.Ip, hf.Mac, hf.UserAgent, hf.Host, hf.Cookie, hf.OS)
 }
 
 func captureHttp(packet gopacket.Packet) {
-	httpFingerprint := HttpFp{}
+	httpFingerprint := HttpFP{}
 	tcpLayer := packet.Layer(layers.LayerTypeTCP)
 	if tcpLayer == nil || tcpLayer.(*layers.TCP).DstPort != 80 {
 		return
@@ -62,6 +63,10 @@ func captureHttp(packet gopacket.Packet) {
 	if ipLayer != nil {
 		httpFingerprint.Ip = ipLayer.(*layers.IPv4).SrcIP.String()
 
+	}
+	err := StoreHttpFP(httpFingerprint)
+	if err != nil {
+		log.Println(err)
 	}
 	fmt.Println("---------------------------------------------------------------")
 	httpFingerprint.print()

@@ -183,11 +183,16 @@ func captureDhcp(packet gopacket.Packet) bool {
 		}
 
 		fmt.Println("--------------------------------------------------------------------")
-
+		if dhcpFingerPrint.Client != "" && dhcpFingerPrint.Client != "0.0.0.0" {
+			err := StoreDhcpFP(dhcpFingerPrint)
+			if err != nil {
+				log.Println(err)
+			}
+		}
 		dhcpFingerPrint.Print()
 		data, err := json.MarshalIndent(dhcpFingerPrint, "", "   ")
 		if err != nil {
-			log.Fatalf("Json Marshaling failed: %s", err)
+			log.Printf("Json Marshaling failed: %s", err)
 		}
 		chDhcpFp <- data
 		return true

@@ -25,12 +25,22 @@ sudo yum install libpcap-devel
 ## Usage
 Run command below , you can get the fundamental capacity of goprinter
 ```shell script
-go run main/main.go
+go run main/main.go 
 ```
 or run with argument
 ```shell script
-go run main/main.go -i interfaceName -f filter
+go run main/main.go -i interfaceName -f filter -h [host_name_of_mysql] -u [user_name_of_mysql] -p [password_of_user] -db [database_name]
 ```
+## Output
+Output can be access from three place. first is in the terminal itself, second is in mysql database, third can be assess through http 
+### terminal
+
+![](./assets/terminal.jpg)
+### mysql
+![](./assets/dhcpFP.jpg)
+
+### http
+![](./assets/http.jpg)
 
 # OsScan
 OsScan is a subproject of gofinger, the purpose of it is to guest the Operation System and Device Type of remote device.
@@ -53,4 +63,4 @@ go run osScan/osscan.go -f [filePath] -h [host_name_of_mysql] -u [user_name_of_m
 
 ## OutPut
 The result of OsScan will be saved in mysql database. If you  set -db option when running osScan, data will be saved in database_name,with the table named "osscan".
- 
+![](./assets/osscan.jpg) 
