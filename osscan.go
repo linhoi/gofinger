@@ -216,8 +216,21 @@ func OsScan(ip, mac string, scanDegree ScanDegree) bool {
 
 	fmt.Printf("OsGuest of IP %s is %s\n", device.IP, highAccuracyOsName)
 	device.ScanDuration = time.Since(startTime).String()
+
+	// store data in mysql
 	StoreOsScanData(device)
+
+	// store data in mysql
+	redisClient := NewRedisClientSimple()
+	if err := redisClient.Conn(); err != nil {
+		log.Println(err)
+	}
+	if err := redisClient.StoreDeviceDataInRedis(&device); err != nil {
+		log.Println(err)
+	}
+
 	return true
+
 }
 
 func formatStringArray(inputStrs []string) (outputStr string) {

@@ -184,8 +184,17 @@ func captureDhcp(packet gopacket.Packet) bool {
 
 		fmt.Println("--------------------------------------------------------------------")
 		if dhcpFingerPrint.Client != "" && dhcpFingerPrint.Client != "0.0.0.0" {
-			err := StoreDhcpFP(dhcpFingerPrint)
-			if err != nil {
+			// store date to redis
+			redisClient := NewRedisClientSimple()
+			if err := redisClient.Conn(); err != nil {
+				log.Println(err)
+			}
+			if err := redisClient.StoreDhcpPFInRedis(&dhcpFingerPrint); err != nil {
+				log.Println(err)
+			}
+
+			// store data in mysql
+			if err := StoreDhcpFP(dhcpFingerPrint); err != nil {
 				log.Println(err)
 			}
 		}

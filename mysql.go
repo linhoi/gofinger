@@ -40,6 +40,7 @@ func init() {
 
 func CreateTableOsscan() error {
 	mysql , err := ConnectToMysql()
+	defer mysql.Close()
 	if err != nil {
 		return err
 	}
@@ -59,6 +60,7 @@ func CreateTableOsscan() error {
 }
 func QueryTableOsscan() error {
 	mysql , err := ConnectToMysql()
+	defer mysql.Close()
 	if err != nil {
 		return err
 	}
@@ -107,6 +109,7 @@ func ConnectToMysql() (*sql.DB, error) {
 
 func StoreDhcpFP(dhcpFP DhcpFP) error {
 	mysql ,err := ConnectToMysql()
+	defer  mysql.Close()
 	if err != nil {
 		return err
 	}
@@ -118,6 +121,7 @@ func StoreDhcpFP(dhcpFP DhcpFP) error {
 }
 func CreateTableDhcpFP() error {
 	mysql, err := ConnectToMysql()
+	defer mysql.Close()
 	if err != nil {
 		return err
 	}
@@ -137,6 +141,7 @@ func CreateTableDhcpFP() error {
 //TODO create table httpFP
 func StoreHttpFP(httpFp HttpFP) error {
 	mysql ,err := ConnectToMysql()
+	defer mysql.Close()
 	if err != nil {
 		return err
 	}
@@ -151,6 +156,7 @@ func StoreHttpFP(httpFp HttpFP) error {
 }
 func CreateTableHttpFP() error {
 	mysql, err := ConnectToMysql()
+	defer mysql.Close()
 	if err != nil {
 		return err
 	}

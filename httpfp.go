@@ -64,8 +64,16 @@ func captureHttp(packet gopacket.Packet) {
 		httpFingerprint.Ip = ipLayer.(*layers.IPv4).SrcIP.String()
 
 	}
-	err := StoreHttpFP(httpFingerprint)
-	if err != nil {
+	// store in mysql
+	if err := StoreHttpFP(httpFingerprint); err != nil {
+		log.Println(err)
+	}
+	// store in redis
+	redisClient := NewRedisClientSimple()
+	if err := redisClient.Conn(); err != nil {
+		log.Println(err)
+	}
+	if err := redisClient.StoreHttpPFInRedis(&httpFingerprint); err != nil {
 		log.Println(err)
 	}
 	fmt.Println("---------------------------------------------------------------")
