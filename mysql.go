@@ -21,20 +21,27 @@ func checkErr(err error) {
 	}
 }
 
+/*
+var (
+	storedHttpFP map[string] bool
+	storedDhcpFP map[string] bool
+)
+*/
+
 //Create the table named "osscan" only once
 //if the table exist, get scannedMac data from mysql db
 func init() {
 	if err := CreateTableOsscan(); err != nil {
-		log.Println(err)
+		//log.Println(err)
 	}
-	if err := QueryTableOsscan(); err != nil {
-		log.Println(err)
+	if err := QueryTables(); err != nil {
+		//log.Println(err)
 	}
 	if err := CreateTableDhcpFP(); err != nil {
-		log.Println(err)
+		//log.Println(err)
 	}
 	if err := CreateTableHttpFP(); err != nil{
-		log.Println(err)
+		//log.Println(err)
 	}
 }
 
@@ -58,7 +65,7 @@ func CreateTableOsscan() error {
 	_, err = mysql.Exec(sql)
 	return err
 }
-func QueryTableOsscan() error {
+func QueryTables() error {
 	mysql , err := ConnectToMysql()
 	defer mysql.Close()
 	if err != nil {
@@ -69,7 +76,6 @@ func QueryTableOsscan() error {
 	if err != nil {
 		return err
 	}
-
 	for rows.Next() {
 		var mac string
 		err = rows.Scan(&mac)

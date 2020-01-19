@@ -66,7 +66,7 @@ func captureHttp(packet gopacket.Packet) {
 	}
 	// store in mysql
 	if err := StoreHttpFP(httpFingerprint); err != nil {
-		log.Println(err)
+		//log.Println(err)
 	}
 	// store in redis
 	redisClient := NewRedisClientSimple()
