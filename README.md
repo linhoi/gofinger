@@ -69,8 +69,9 @@ optionList   :[53 12 55]
 option55List :[1 28 2 121 15 6 12 40 41 42 26 119 3 121 249 33 252 42]
 ```
 ### mysql
-![](./assets/dhcpFP.jpg)
+![](./assets/mysql_dhcp.jpg)
 
+![](./assets/mysql_http.jpg)
 ### http
 ```shell script
 # curl http://localhost:9010/ID=1
