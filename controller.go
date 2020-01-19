@@ -1,5 +1,7 @@
 package gofinger
 
+import "runtime"
+
 // TODO control data store from redis to mysql
 
 type Icontroller interface {
@@ -7,4 +9,6 @@ type Icontroller interface {
 	ValidateDevices() (credibility map[string]float32)
 	StoreDevicesDataToMysql() error
 }
-
+func test() {
+	runtime.GC()
+}

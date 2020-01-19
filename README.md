@@ -3,9 +3,8 @@ Gofinger is passive device fingerprint project written by go.
 It is under development.
 
 ## Introduce
-The amid of device fingerprint is device identify.  There are many ways to get device fingerprint ,and my focus is to use the message spread in the 
-network . Many delicious information are spread with the TCP/IP network,if you can 
-find them, it may be great help to get a fingerprint. In my case, I will use the DHCP and HTTP packet to gain fingerprint.
+The amid of device fingerprint is device identify.  There are many ways to get device fingerprint . My focus is to use the message spread in the 
+network . Some useful information are spread with the TCP/IP network. It may be great help to get a fingerprint if you can find them. In my case, I  use the DHCP and HTTP packet to generate fingerprint.
 
 # Requirement
 Build gofinger requires libpcap-dev and cgo enabled.
@@ -149,3 +148,5 @@ go run osScan/osscan.go \
 ## OutPut
 The result of OsScan will be saved in mysql database. If you  set -db option when running osScan, data will be saved in database_name,with the table named "osscan".
 ![](./assets/osscan.jpg) 
+
+
